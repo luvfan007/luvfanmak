@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hacker Love - Heart Analyzer</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Mitr:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --hacker-green: #00ff41;
+            --love-pink: #ff2d55;
+            --dark-bg: #0a0a0a;
+            --glass-bg: rgba(0, 0, 0, 0.85);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background-color: var(--dark-bg);
+            color: var(--hacker-green);
+            font-family: 'Mitr', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        canvas#matrix {
+            position: fixed;
+            top: 0; left: 0;
+            z-index: -1;
+            opacity: 0.3;
+        }
+
+        /* --- Lock Screen --- */
+        #lock-screen {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            background: black;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 1.2s cubic-bezier(0.85, 0, 0.15, 1);
+        }
+
+        .terminal-box {
+            background: var(--glass-bg);
+            border: 2px solid var(--hacker-green);
+            padding: 40px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 0 30px rgba(0, 255, 65, 0.2);
+            border-radius: 15px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        #terminal-text { min-height: 120px; margin-bottom: 25px; font-size: 15px; line-height: 1.6; }
+
+        .pass-container { text-align: center; border-top: 1px solid rgba(0, 255, 65, 0.3); padding-top: 20px; }
+
+        #pin-input {
+            background: transparent; border: none;
+            border-bottom: 2px solid var(--hacker-green);
+            color: var(--hacker-green); font-size: 32px;
+            text-align: center; width: 160px; outline: none;
+            letter-spacing: 8px; margin-top: 10px;
+        }
+
+        /* --- Main Content --- */
+        #main-content {
+            display: flex;
+            width: 400vw;
+            height: 100vh;
+            transition: transform 0.8s cubic-bezier(0.65, 0, 0.35, 1);
+        }
+
+        section {
+            width: 100vw; height: 100vh;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            text-align: center; padding: 20px;
+        }
+
+        h1, h2 { font-weight: 500; color: white; margin-bottom: 1.5rem; }
+
+        .neon-title {
+            font-size: clamp(2.5rem, 8vw, 4rem);
+            color: var(--hacker-green);
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .neon-title span { color: var(--love-pink); text-shadow: 0 0 20px var(--love-pink); }
+
+        #heartfelt-text {
+            font-size: 1.3rem; color: #fff;
+            background: rgba(255, 45, 85, 0.1);
+            padding: 20px; border-radius: 10px;
+            border-left: 4px solid var(--love-pink);
+            max-width: 600px; line-height: 1.8;
+        }
+
+        /* --- Analyzer Styles (แทนที่รูปภาพ) --- */
+        .analyzer-container {
+            background: rgba(0, 255, 65, 0.05);
+            border: 1px solid var(--hacker-green);
+            padding: 30px;
+            border-radius: 10px;
+            width: 100%;
+            max-width: 500px;
+            font-family: 'JetBrains Mono', monospace;
+            text-align: left;
+        }
+
+        .stat-row { margin-bottom: 10px; font-size: 14px; }
+        .progress-bar {
+            width: 100%; height: 10px;
+            background: #222; margin-top: 5px;
+            position: relative; overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%; background: var(--hacker-green);
+            width: 0%; transition: width 2s ease-in-out;
+        }
+        .sync-result {
+            margin-top: 20px; font-size: 24px;
+            color: var(--love-pink); text-align: center;
+            display: none; font-weight: bold;
+        }
+
+        .big-love {
+            font-size: clamp(3rem, 10vw, 6rem);
+            color: var(--love-pink);
+            text-shadow: 0 0 30px var(--love-pink);
+            animation: pulse 1.5s infinite;
+        }
+
+        .btn-music {
+            margin-top: 30px; padding: 15px 35px;
+            background: transparent; border: 2px solid var(--love-pink);
+            color: var(--love-pink); font-family: 'Mitr', sans-serif;
+            cursor: pointer; border-radius: 50px;
+        }
+
+        .nav-btns {
+            position: fixed; bottom: 40px; left: 50%;
+            transform: translateX(-50%); display: none;
+            gap: 30px; z-index: 100;
+        }
+        .nav-btns button {
+            background: rgba(0, 255, 65, 0.1); border: 1px solid var(--hacker-green);
+            color: var(--hacker-green); width: 50px; height: 50px;
+            border-radius: 50%; cursor: pointer;
+        }
+
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+        .shake { animation: shake 0.4s ease-in-out; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-10px); } }
+
+        .heart {
+            position: absolute; color: var(--love-pink);
+            font-size: 20px; pointer-events: none;
+            animation: fall linear forwards;
+        }
+        @keyframes fall { to { transform: translateY(110vh) rotate(360deg); opacity: 0; } }
+    </style>
+</head>
+<body>
+
+    <canvas id="matrix"></canvas>
+
+    <div id="lock-screen">
+        <div class="terminal-box" id="termBox">
+            <div id="terminal-text"></div>
+            <div class="pass-container" id="inputArea" style="display: none;">
+                <p style="font-size: 13px; color: #888; margin-bottom: 10px;">กรุณาใส่รหัสผ่านเพื่อเข้าสู่ระบบ (****)</p>
+                <input type="password" id="pin-input" maxlength="4" placeholder="****" autocomplete="off">
+            </div>
+        </div>
+    </div>
+
+    <div id="main-content">
+        <!-- Page 1 -->
+        <section>
+            <h1 class="neon-title">SYSTEM <span>HACKED</span></h1>
+            <p>สองปีแย้ววววววววววววววว เป้นงัยจ้ะน้องยุกับพี่🤭🤭🤭🤭 ชั้นรักเทอเสมอมาและตลอดปัยไม่มีอะรัยจะบอกนอกจากคำว่ารั้ก</p>
+        </section>
+
+        <!-- Page 2 -->
+        <section>
+            <h2>ENCRYPTED_MESSAGE.txt</h2>
+            <div id="heartfelt-text"></div>
+        </section>
+
+        <!-- Page 3: New Analyzer (แทนที่รูปภาพ) -->
+        <section>
+            <h2 style="color: var(--hacker-green);">HEART_SYNC_ANALYZER.exe</h2>
+            <div class="analyzer-container">
+                <div class="stat-row">
+                    <span>> ANALYZING COMPATIBILITY...</span>
+                    <div class="progress-bar"><div id="bar1" class="progress-fill"></div></div>
+                </div>
+                <div class="stat-row">
+                    <span>> CHECKING SHARED MEMORIES...</span>
+                    <div class="progress-bar"><div id="bar2" class="progress-fill"></div></div>
+                </div>
+                <div class="stat-row">
+                    <span>> CALCULATING FUTURE TOGETHER...</span>
+                    <div class="progress-bar"><div id="bar3" class="progress-fill"></div></div>
+                </div>
+                <div id="sync-result" class="sync-result">
+                    SYNC STATUS: 100% (PERFECT MATCH)
+                </div>
+            </div>
+            <p style="margin-top: 20px;">ตรวจพบความเข้ากันได้ในระดับที่ไม่สามารถประเมินค่าได้</p>
+        </section>
+
+        <!-- Page 4 -->
+        <section>
+            <h1 class="big-love">I LOVE YOU</h1>
+            <p>เทส</p>
+            <button class="btn-music" onclick="toggleMusic()">🎵 เล่นเพลงพิเศษสำหรับเธอ</button>
+        </section>
+    </div>
+
+    <div class="nav-btns" id="nav-btns">
+        <button onclick="moveSlide(-1)">←</button>
+        <button onclick="moveSlide(1)">→</button>
+    </div>
+
+ <audio id="bg-music" loop>
+    <source src="<source src="07 นกวทยาศาสตร (Scientist) - D GERRARD - Luxury Medley Session.mp3" type="audio/mpeg">
+" type="audio/mpeg">
+</audio>
+
+
+    <script>
+        const canvas = document.getElementById('matrix');
+        const ctx = canvas.getContext('2d');
+        function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        window.addEventListener('resize', resize);
+        resize();
+
+        const letters = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ@#$%&";
+        const fontSize = 16;
+        const columns = canvas.width / fontSize;
+        const drops = Array(Math.floor(columns)).fill(1);
+
+        function drawMatrix() {
+            ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "#0F0";
+            ctx.font = fontSize + "px monospace";
+            for (let i = 0; i < drops.length; i++) {
+                const text = letters[Math.floor(Math.random() * letters.length)];
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
+                drops[i]++;
+            }
+        }
+        setInterval(drawMatrix, 35);
+
+        const lines = [
+            "> Locating user_heart...",
+            "> Security bypassed",
+            "> Found 1 match: ' My Favorite Person '",
+            "> Status: I Miss You Extremely",
+            "> Enter Bypass Key to proceed..."
+        ];
+        let lineIdx = 0;
+        const termDisplay = document.getElementById('terminal-text');
+
+        function typeTerminal() {
+            if (lineIdx < lines.length) {
+                let p = document.createElement('p');
+                termDisplay.appendChild(p);
+                let charIdx = 0;
+                let currentLine = lines[lineIdx];
+                let interval = setInterval(() => {
+                    p.textContent += currentLine[charIdx];
+                    charIdx++;
+                    if (charIdx >= currentLine.length) {
+                        clearInterval(interval);
+                        lineIdx++;
+                        setTimeout(typeTerminal, 400);
+                    }
+                }, 40);
+            } else {
+                document.getElementById('inputArea').style.display = 'block';
+                document.getElementById('pin-input').focus();
+            }
+        }
+        setTimeout(typeTerminal, 800);
+
+        const pinInput = document.getElementById('pin-input');
+        pinInput.addEventListener('input', (e) => {
+            if (e.target.value === "0505") {
+                document.getElementById('lock-screen').style.transform = 'translateY(-100%)';
+                document.getElementById('nav-btns').style.display = 'flex';
+                startHeartRain();
+                setTimeout(typeHeartfelt, 1200);
+            } else if (e.target.value.length >= 4) {
+                document.getElementById('termBox').classList.add('shake');
+                setTimeout(() => {
+                    document.getElementById('termBox').classList.remove('shake');
+                    e.target.value = '';
+                }, 400);
+            }
+        });
+
+        let currentSlide = 0;
+        function moveSlide(dir) {
+            currentSlide = Math.max(0, Math.min(3, currentSlide + dir));
+            document.getElementById('main-content').style.transform = `translateX(-${currentSlide * 100}vw)`;
+            
+            // ถ้าเลื่อนมาหน้า 3 ให้รัน Analyzer
+            if (currentSlide === 2) {
+                runAnalyzer();
+            }
+        }
+
+        function runAnalyzer() {
+            const bars = ['bar1', 'bar2', 'bar3'];
+            bars.forEach((id, index) => {
+                setTimeout(() => {
+                    document.getElementById(id).style.width = '100%';
+                }, index * 1000);
+            });
+            setTimeout(() => {
+                document.getElementById('sync-result').style.display = 'block';
+            }, 3000);
+        }
+
+        function typeHeartfelt() {
+            const message = "ช้านจะบอกว่าชั้นรักแฟนมั่กๆๆๆๆๆๆๆๆๆ ถึงจะกวนบ่อยๆแต่ก็รักเสมอ เธอเป็นไรก็บอกได้เสมออย่างเช่นเป็นแฟนชั้นแบบนี้🤭🤭🤭🤭🤭 อะหยอกกกกกกรักเธอเสมอเหมือนเดิมนะจ้ะจุ้บๆๆๆๆช่วงนี้ชั้นอนสเย้อะเพราะจะสอบเข้ามหาลัยยย แต่ชั้นก็จะพยายามหาเวลามาให้เธอเสมอออ สอบติดเดะพี่จะพาไปเลี้ยงใหม่นะอ้วนนนนเดะจะเหมาหมึกมาให้อิอิ";
+            const target = document.getElementById('heartfelt-text');
+            if(target.textContent !== "") return;
+            let i = 0;
+            function typing() {
+                if (i < message.length) {
+                    target.textContent += message.charAt(i);
+                    i++;
+                    setTimeout(typing, 60);
+                }
+            }
+            typing();
+        }
+
+        function startHeartRain() {
+            setInterval(() => {
+                const heart = document.createElement('div');
+                heart.className = 'heart';
+                heart.innerHTML = ['❤️', '💖', '💝', '✨'][Math.floor(Math.random() * 4)];
+                heart.style.left = Math.random() * 100 + 'vw';
+                heart.style.top = '-20px';
+                heart.style.fontSize = (Math.random() * 15 + 15) + 'px';
+                heart.style.animationDuration = (Math.random() * 3 + 2) + 's';
+                document.body.appendChild(heart);
+                setTimeout(() => heart.remove(), 5000);
+            }, 300);
+        }
+
+        const music = document.getElementById('bg-music');
+        function toggleMusic() {
+            if (music.paused) {
+                music.play();
+                document.querySelector('.btn-music').innerText = "⏸ หยุดเพลง";
+            } else {
+                music.pause();
+                document.querySelector('.btn-music').innerText = "🎵 เล่นเพลงต่อ";
+            }
+        }
+    </script>
+</body>
+</html>
